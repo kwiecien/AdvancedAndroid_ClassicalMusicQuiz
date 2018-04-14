@@ -205,7 +205,7 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
                 )
         );
         NotificationCompat.Action restartAction = new NotificationCompat.Action(
-                icon, getString(R.string.restart),
+                R.drawable.exo_controls_previous, getString(R.string.restart),
                 MediaButtonReceiver.buildMediaButtonPendingIntent(
                         this, PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
                 )
