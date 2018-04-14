@@ -1,23 +1,25 @@
 /*
-* Copyright (C) 2017 The Android Open Source Project
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*  	http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright (C) 2017 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *  	http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package com.example.android.classicalmusicquiz;
 
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -60,6 +62,7 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
     private static final int CORRECT_ANSWER_DELAY_MILLIS = 1000;
     private static final String REMAINING_SONGS_KEY = "remaining_songs";
     private static final String TAG = QuizActivity.class.getSimpleName();
+    private static MediaSessionCompat mMediaSession;
     private int[] mButtonIDs = {R.id.buttonA, R.id.buttonB, R.id.buttonC, R.id.buttonD};
     private ArrayList<Integer> mRemainingSampleIDs;
     private ArrayList<Integer> mQuestionSampleIDs;
@@ -69,7 +72,6 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
     private Button[] mButtons;
     private SimpleExoPlayer mExoPlayer;
     private SimpleExoPlayerView mPlayerView;
-    private MediaSessionCompat mMediaSession;
     private PlaybackStateCompat.Builder mStateBuilder;
     private NotificationManager mNotificationManager;
 
@@ -192,6 +194,7 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
     /**
      * Shows Media Style notification, with an action that depends on the current MediaSession
      * PlaybackState.
+     *
      * @param state The PlaybackState of the MediaSession.
      */
     private void showNotification(PlaybackStateCompat state) {
@@ -199,7 +202,7 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
 
         int icon;
         String play_pause;
-        if(state.getState() == PlaybackStateCompat.STATE_PLAYING){
+        if (state.getState() == PlaybackStateCompat.STATE_PLAYING) {
             icon = R.drawable.exo_controls_pause;
             play_pause = getString(R.string.pause);
         } else {
@@ -230,7 +233,7 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
                 .addAction(playPauseAction)
                 .setStyle(new NotificationCompat.MediaStyle()
                         .setMediaSession(mMediaSession.getSessionToken())
-                        .setShowActionsInCompactView(0,1));
+                        .setShowActionsInCompactView(0, 1));
 
 
         mNotificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
@@ -240,6 +243,7 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
 
     /**
      * Initialize ExoPlayer.
+     *
      * @param mediaUri The URI of the sample to play.
      */
     private void initializePlayer(Uri mediaUri) {
@@ -252,7 +256,7 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
 
             // Set the ExoPlayer.EventListener to this activity.
             mExoPlayer.addListener(this);
-            
+
             // Prepare the MediaSource.
             String userAgent = Util.getUserAgent(this, "ClassicalMusicQuiz");
             MediaSource mediaSource = new ExtractorMediaSource(mediaUri, new DefaultDataSourceFactory(
@@ -364,7 +368,7 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
         mMediaSession.setActive(false);
     }
 
-    
+
     // ExoPlayer Event Listeners
 
     @Override
@@ -382,16 +386,17 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
     /**
      * Method that is called when the ExoPlayer state changes. Used to update the MediaSession
      * PlayBackState to keep in sync, and post the media notification.
+     *
      * @param playWhenReady true if ExoPlayer is playing, false if it's paused.
      * @param playbackState int describing the state of ExoPlayer. Can be STATE_READY, STATE_IDLE,
      *                      STATE_BUFFERING, or STATE_ENDED.
      */
     @Override
     public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
-        if((playbackState == ExoPlayer.STATE_READY) && playWhenReady){
+        if ((playbackState == ExoPlayer.STATE_READY) && playWhenReady) {
             mStateBuilder.setState(PlaybackStateCompat.STATE_PLAYING,
                     mExoPlayer.getCurrentPosition(), 1f);
-        } else if((playbackState == ExoPlayer.STATE_READY)){
+        } else if ((playbackState == ExoPlayer.STATE_READY)) {
             mStateBuilder.setState(PlaybackStateCompat.STATE_PAUSED,
                     mExoPlayer.getCurrentPosition(), 1f);
         }
@@ -405,6 +410,14 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     public void onPositionDiscontinuity() {
+    }
+
+    public static class MediaReceiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            MediaButtonReceiver.handleIntent(mMediaSession, intent);
+        }
     }
 
     /**
@@ -426,7 +439,5 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
             mExoPlayer.seekTo(0);
         }
     }
-
-    // TODO (1): Create a static inner class that extends Broadcast Receiver and implement the onReceive() method.
     //TODO (2): Call MediaButtonReceiver.handleIntent and pass in the incoming intent as well as the MediaSession object to forward the intent to the MediaSession.Callbacks.
 }
